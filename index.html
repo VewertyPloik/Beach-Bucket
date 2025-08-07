@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beach Collector Game</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #f7e9a0;
+      overflow: hidden;
+      position: relative;
+    }
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    .item {
+      position: absolute;
+      font-size: 2rem;
+      cursor: pointer;
+    }
+    #bucket {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+    }
+    button {
+      font-size: 1rem;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      background-color: #87ceeb;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #inventoryDisplay {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="bucket">🪣 0/5 storage full</div>
+    <div id="controls">
+      <button onclick="dumpToInventory()">📥 Dump to Inventory</button>
+      <button onclick="toggleInventory()">📦 Inventory</button>
+      <button onclick="upgradeFindings()">🔓 Unlock Treasures (5 🐚)</button>
+    </div>
+    <div id="inventoryDisplay"></div>
+  </div>
+
+  <script>
+    const game = document.getElementById("game");
+    const inventoryDisplay = document.getElementById("inventoryDisplay");
+    const bucketDisplay = document.getElementById("bucket");
+
+    let bucket = JSON.parse(localStorage.getItem("bucket")) || [];
+    let inventory = JSON.parse(localStorage.getItem("inventory")) || {
+      "🟡": 0,
+      "🐚": 0,
+      "💎": 0,
+      "🏅": 0,
+      "🍕": 0
+    };
+    let treasureUnlocked = JSON.parse(localStorage.getItem("treasureUnlocked")) || false;
+
+    function saveGame() {
+      localStorage.setItem("bucket", JSON.stringify(bucket));
+      localStorage.setItem("inventory", JSON.stringify(inventory));
+      localStorage.setItem("treasureUnlocked", JSON.stringify(treasureUnlocked));
+    }
+
+    function updateBucketDisplay() {
+      bucketDisplay.textContent = `🪣 ${bucket.length}/5 storage full`;
+    }
+
+    function spawnItem() {
+      const rand = Math.random();
+      let item;
+      if (treasureUnlocked) {
+        if (rand < 0.05) item = "🍕";
+        else if (rand < 0.20) item = "💎";
+        else if (rand < 0.45) item = "🏅";
+        else if (rand < 0.65) item = "🐚";
+        else item = "🟡";
+      } else {
+        item = rand < 0.3 ? "🐚" : "🟡";
+      }
+
+      const el = document.createElement("div");
+      el.className = "item";
+      el.textContent = item;
+      el.style.top = Math.random() * (window.innerHeight - 50) + "px";
+      el.style.left = Math.random() * (window.innerWidth - 50) + "px";
+      el.onclick = () => {
+        if (bucket.length < 5) {
+          bucket.push(item);
+          updateBucketDisplay();
+          saveGame();
+          el.remove();
+        }
+      };
+      game.appendChild(el);
+    }
+
+    function dumpToInventory() {
+      bucket.forEach(item => {
+        if (!inventory[item]) inventory[item] = 0;
+        inventory[item]++;
+      });
+      bucket = [];
+      updateBucketDisplay();
+      saveGame();
+    }
+
+    function toggleInventory() {
+      if (inventoryDisplay.style.display === "none") {
+        inventoryDisplay.style.display = "block";
+        inventoryDisplay.innerHTML = Object.entries(inventory)
+          .map(([item, count]) => `${item}: ${count}`)
+          .join("<br>");
+      } else {
+        inventoryDisplay.style.display = "none";
+      }
+    }
+
+    function upgradeFindings() {
+      if (inventory["🐚"] >= 5 && !treasureUnlocked) {
+        inventory["🐚"] -= 5;
+        treasureUnlocked = true;
+        saveGame();
+        alert("Treasure unlocked! 💎🏅🍕 can now spawn!");
+      } else if (treasureUnlocked) {
+        alert("Treasure already unlocked!");
+      } else {
+        alert("Not enough 🐚!");
+      }
+    }
+
+    for (let i = 0; i < 10; i++) spawnItem();
+    setInterval(spawnItem, 2000);
+    updateBucketDisplay();
+  </script>
+</body>
+</html>
