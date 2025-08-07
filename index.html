@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beach Bucket Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #87CEEB;
+      font-family: Comic Sans MS;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+    }
+    #inventoryButton, #upgradeButton {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 16px;
+      padding: 8px 12px;
+      margin-left: 10px;
+    }
+    #inventoryPopup, #upgradePopup {
+      position: absolute;
+      top: 60px;
+      right: 10px;
+      background: white;
+      border: 2px solid black;
+      padding: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <button id="inventoryButton">📦 Inventory</button>
+  <button id="upgradeButton">⬆️ Upgrades</button>
+  <div id="inventoryPopup"></div>
+  <div id="upgradePopup"></div>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let player = {
+      x: 400,
+      y: 500,
+      radius: 40,
+      bucketLevel: 1,
+      bucketStorage: 5,
+      sand: 0,
+      seashells: 0,
+      treasures: 0,
+      canFindTreasure: false,
+      color: 'pink'
+    };
+
+    let items = [];
+    const maxItems = 20;
+
+    for (let i = 0; i < maxItems; i++) {
+      let type = Math.random() < 0.7 ? 'sand' : 'seashell';
+      items.push({
+        x: Math.random() * 700 + 50,
+        y: Math.random() * 400 + 100,
+        type,
+        collected: false
+      });
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#00BFFF';
+      ctx.fillRect(0, 300, canvas.width, 300);
+      ctx.fillStyle = '#F4E99D';
+      ctx.fillRect(0, 500, canvas.width, 100);
+    }
+
+    function drawPlayer() {
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fillStyle = player.color;
+      ctx.fill();
+
+      ctx.fillStyle = 'red';
+      ctx.fillRect(player.x - 20, player.y + 50, 40, 30);
+
+      ctx.fillStyle = 'black';
+      ctx.font = '20px Comic Sans MS';
+      ctx.fillText(`🪣 ${player.sand} / ${player.bucketStorage}`, 20, 40);
+      ctx.fillText(`🐚 ${player.seashells}`, 20, 70);
+      ctx.fillText(`💎 ${player.treasures}`, 20, 100);
+    }
+
+    function drawItems() {
+      items.forEach(item => {
+        if (!item.collected) {
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, 20, 0, Math.PI * 2);
+          ctx.fillStyle = item.type === 'sand' ? '#FFD700' : '#FF69B4';
+          ctx.fill();
+        }
+      });
+    }
+
+    function checkCollection() {
+      items.forEach(item => {
+        const dx = player.x - item.x;
+        const dy = player.y - item.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (!item.collected && distance < 50) {
+          if (item.type === 'sand' && player.sand < player.bucketStorage) {
+            player.sand++;
+            item.collected = true;
+          } else if (item.type === 'seashell') {
+            player.seashells++;
+            item.collected = true;
+          }
+        }
+      });
+
+      if (player.canFindTreasure && Math.random() < 0.001) {
+        player.treasures++;
+      }
+    }
+
+    function update() {
+      checkCollection();
+    }
+
+    function draw() {
+      drawBackground();
+      drawItems();
+      drawPlayer();
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') player.x -= 20;
+      if (e.key === 'ArrowRight') player.x += 20;
+      if (e.key === 'ArrowUp') player.y -= 20;
+      if (e.key === 'ArrowDown') player.y += 20;
+    });
+
+    document.getElementById('inventoryButton').addEventListener('click', () => {
+      const popup = document.getElementById('inventoryPopup');
+      popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+      popup.innerHTML = `
+        <h3>📦 Inventory</h3>
+        <p>🪣 Sand: ${player.sand}</p>
+        <p>🐚 Seashells: ${player.seashells}</p>
+        <p>💎 Treasures: ${player.treasures}</p>
+        <hr>
+        <p>🔒 Locked Item: Golden Bucket</p>
+        <p>🔒 Locked Item: Rare Starfish</p>
+      `;
+    });
+
+    document.getElementById('upgradeButton').addEventListener('click', () => {
+      const popup = document.getElementById('upgradePopup');
+      popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+      popup.innerHTML = `
+        <h3>⬆️ Upgrades</h3>
+        <button onclick="upgradeBucket()">Upgrade Bucket (🐚 x5)</button><br><br>
+        <button onclick="unlockTreasure()">Find Treasures (🐚 x10)</button>
+      `;
+    });
+
+    window.upgradeBucket = function () {
+      if (player.seashells >= 5) {
+        player.seashells -= 5;
+        player.bucketLevel++;
+        player.bucketStorage += 5;
+        alert('🪣 Bucket upgraded! More storage now.');
+      } else {
+        alert('Not enough seashells!');
+      }
+    };
+
+    window.unlockTreasure = function () {
+      if (!player.canFindTreasure && player.seashells >= 10) {
+        player.seashells -= 10;
+        player.canFindTreasure = true;
+        alert('💎 You can now find hidden treasures!');
+      } else if (player.canFindTreasure) {
+        alert('You already unlocked treasure hunting!');
+      } else {
+        alert('Not enough seashells!');
+      }
+    };
+
+    loop();
+  </script>
+</body>
+</html>
